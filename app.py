@@ -206,12 +206,12 @@ for msg in st.session_state.messages:
                 for src in msg["sources"]:
                     st.markdown(f"<div class='source-box'><b>{src['title']}</b> ({src['source']}) — Similarity: {src['score']:.3f}</div>", unsafe_allow_html=True)
 
-                 def retrieve(query, k=6):
-                 q_emb = embedder.encode(
-                    [query],
-                    convert_to_numpy=True,
-                    normalize_embeddings=True
-                    ).astype("float32")
+def retrieve(query, k=6):
+    q_emb = embedder.encode(
+        [query],
+        convert_to_numpy=True,
+        normalize_embeddings=True
+    ).astype("float32")
     scores, idxs = index.search(q_emb, k)
     results = []
     for score, idx in zip(scores[0], idxs[0]):
@@ -232,12 +232,12 @@ if prompt := st.chat_input("Ask any cricket question..."):
         context_str = "\n\n---\n\n".join(f"[Source: {h['title']} | {h['source']}]\n{h['text']}" for h in hits)
 
     # API Payload Assembly
- system_instruction = (
-    "You are CricRag, an authoritative cricket knowledge engine. You retain memory of the conversation history.\n"
-    "Answer strictly using the CONTEXT provided below and relevant prior messages.\n"
-    "State clearly if an answer cannot be found within the provided context.\n"
-    "Format your answers using plain Markdown only (headings, bullet points, tables). "
-    "Never use raw HTML tags such as <br> — use normal Markdown line breaks or bullet lists instead."
+    system_instruction = (
+        "You are CricRag, an authoritative cricket knowledge engine. You retain memory of the conversation history.\n"
+        "Answer strictly using the CONTEXT provided below and relevant prior messages.\n"
+        "State clearly if an answer cannot be found within the provided context.\n"
+        "Format your answers using plain Markdown only (headings, bullet points, tables). "
+        "Never use raw HTML tags such as <br> — use normal Markdown line breaks or bullet lists instead."
     )
     api_messages = [{"role": "system", "content": system_instruction}]
     for prev in st.session_state.messages:
@@ -250,21 +250,26 @@ if prompt := st.chat_input("Ask any cricket question..."):
     with st.chat_message("assistant", avatar="🏏"):
         message_placeholder = st.empty()
         full_response = ""
-        
-        completion = groq_client.chat.completions.create(
-      model="openai/gpt-oss-120b",
-      messages=api_messages,
-      temperature=0.2,
-      max_tokens=800,
-      stream=True
-)
 
-        for chunk in completion:
-            content = chunk.choices[0].delta.content or ""
-            full_response += content
-            message_placeholder.markdown(full_response + "▌")
-    -    
-        message_placeholder.markdown(full_response)
+        try:
+            completion = groq_client.chat.completions.create(
+                model="openai/gpt-oss-120b",
+                messages=api_messages,
+                temperature=0.2,
+                max_tokens=800,
+                stream=True
+            )
+
+            for chunk in completion:
+                content = chunk.choices[0].delta.content or ""
+                full_response += content
+                message_placeholder.markdown(full_response + "▌")
+
+            message_placeholder.markdown(full_response)
+        except Exception as e:
+            full_response = "⚠️ Sorry, I couldn't reach the AI model right now. Please check your API key or try again."
+            message_placeholder.markdown(full_response)
+            st.error(f"Error calling Groq API: {e}")
 
         if show_sources:
             with st.expander("View Referenced Context"):
