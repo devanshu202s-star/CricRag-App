@@ -206,12 +206,12 @@ for msg in st.session_state.messages:
                 for src in msg["sources"]:
                     st.markdown(f"<div class='source-box'><b>{src['title']}</b> ({src['source']}) — Similarity: {src['score']:.3f}</div>", unsafe_allow_html=True)
 
-def retrieve(query, k=6):
-    q_emb = embedder.encode(
-        [f"Represent this sentence for searching relevant passages: {query}"],
-        convert_to_numpy=True,
-        normalize_embeddings=True
-    ).astype("float32")
+                 def retrieve(query, k=6):
+                 q_emb = embedder.encode(
+                    [query],
+                    convert_to_numpy=True,
+                    normalize_embeddings=True
+                    ).astype("float32")
     scores, idxs = index.search(q_emb, k)
     results = []
     for score, idx in zip(scores[0], idxs[0]):
@@ -232,12 +232,13 @@ if prompt := st.chat_input("Ask any cricket question..."):
         context_str = "\n\n---\n\n".join(f"[Source: {h['title']} | {h['source']}]\n{h['text']}" for h in hits)
 
     # API Payload Assembly
-    system_instruction = (
-        "You are CricRag, an authoritative cricket knowledge engine. You retain memory of the conversation history.\n"
-        "Answer strictly using the CONTEXT provided below and relevant prior messages.\n"
-        "State clearly if an answer cannot be found within the provided context."
+ system_instruction = (
+    "You are CricRag, an authoritative cricket knowledge engine. You retain memory of the conversation history.\n"
+    "Answer strictly using the CONTEXT provided below and relevant prior messages.\n"
+    "State clearly if an answer cannot be found within the provided context.\n"
+    "Format your answers using plain Markdown only (headings, bullet points, tables). "
+    "Never use raw HTML tags such as <br> — use normal Markdown line breaks or bullet lists instead."
     )
-
     api_messages = [{"role": "system", "content": system_instruction}]
     for prev in st.session_state.messages:
         api_messages.append({"role": prev["role"], "content": prev["content"]})
@@ -262,7 +263,7 @@ if prompt := st.chat_input("Ask any cricket question..."):
             content = chunk.choices[0].delta.content or ""
             full_response += content
             message_placeholder.markdown(full_response + "▌")
-        
+    -    
         message_placeholder.markdown(full_response)
 
         if show_sources:
