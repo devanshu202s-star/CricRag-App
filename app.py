@@ -146,11 +146,14 @@ def load_rag_assets():
 index, all_docs, embedder = load_rag_assets()
 
 # API Authentication
-api_key = os.getenv("GROQ_API_KEY") or st.sidebar.text_input("Enter Groq Key:", type="password")
-if not api_key:
-    st.info("Add your Groq API Key to `.env` or paste it in the sidebar.")
-    st.stop()
+api_key = st.secrets.get("GROQ_API_KEY", "")
 
+if not api_key:
+    api_key = st.sidebar.text_input("Enter Groq API Key", type="password")
+
+if not api_key:
+    st.error("Groq API Key not found.")
+    st.stop()
 groq_client = Groq(api_key=api_key)
 
 # Session State Persistence
@@ -248,12 +251,12 @@ if prompt := st.chat_input("Ask any cricket question..."):
         full_response = ""
         
         completion = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=api_messages,
-            temperature=0.2,
-            max_tokens=800,
-            stream=True
-        )
+      model="openai/gpt-oss-120b",
+      messages=api_messages,
+      temperature=0.2,
+      max_tokens=800,
+      stream=True
+)
 
         for chunk in completion:
             content = chunk.choices[0].delta.content or ""
